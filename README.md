@@ -118,7 +118,7 @@ O sistema opera em duas fases desacopladas (**Fase 1: Treinamento/Validação** 
 
 1. Clone o repositório e acesse a pasta raiz:
    ```bash
-   git clone <URL_DO_REPOSITORIO>
+   git clone https://github.com/gabmm/projeto_vis_comput
    cd projeto_vis_comput
    ```
 2. Crie um ambiente virtual e instale as dependências:
