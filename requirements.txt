@@ -1,0 +1,15 @@
+# ==============================================================================
+# DEPENDÊNCIAS DO PROJETO
+# Como instalar: pip install -r requirements.txt
+# ==============================================================================
+
+# Deep Learning e Datasets (CIFAR-10 e Modelos da ImageNet)
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Divisão Estratificada (45k/5k) e Métricas de Teste (Matriz de Confusão / F1)
+scikit-learn>=1.2.0
+
+# Operações Matriciais e Geração de Gráficos Vetoriais (.pdf)
+numpy>=1.24.0
+matplotlib>=3.7.0
