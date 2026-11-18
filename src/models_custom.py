@@ -78,11 +78,13 @@ class Exp1BatchNormCNN(nn.Module):
         self.features = nn.Sequential(
             # Bloco Convolucional 1 (Entrada: 3 x 32 x 32 -> Saída: 32 x 16 x 16)
             nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             # Bloco Convolucional 2 (Entrada: 32 x 16 x 16 -> Saída: 64 x 8 x 8)
             nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
         )
