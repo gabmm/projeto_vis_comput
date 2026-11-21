@@ -149,13 +149,13 @@ Você pode rodar todos os experimentos de uma vez ou passar apenas os IDs deseja
 
 ```bash
 # Rodar apenas o Baseline (ID 0) e o primeiro experimento de Transfer Learning (ID 4)
-python run_project.py --ids 0 4
+python run_project.py --id 0 4
 
 # Rodar apenas os experimentos da Parte 1 (CNN Própria)
-python run_project.py --ids 0 1 2 3
+python run_project.py --id 0 1 2 3
 
 # Rodar toda a bateria de experimentos (IDs 0 a 7)
-python run_project.py --ids 0 1 2 3 4 5 6 7
+python run_project.py --id 0 1 2 3 4 5 6 7
 ```
 
 ### 4.4. Gerando Gráficos e Avaliando no Teste (`evaluate.py`)
@@ -179,7 +179,7 @@ python evaluate.py --mode test --winners 2 5 7
 Abaixo está o rastreamento completo do que acontece internamente quando executamos os experimentos **`[0, 4]`** no `run_project.py` e, em seguida, consolidamos os resultados no `evaluate.py`.
 
 ```text
-[USUÁRIO] ──> python run_project.py --ids 0 4
+[USUÁRIO] ──> python run_project.py --id 0 4
   │
   ├─ 1. run_project.py carrega o dicionário de hiperparâmetros fixos (LR, Batch Size, Épocas, Loss).
   │

@@ -67,10 +67,13 @@ class BaselineCNN(nn.Module):
 
 class Exp1BatchNormCNN(nn.Module):
     """
-    Arquitetura Baseline (ID 1) para classificação do CIFAR-10 (3x32x32).
+    Modificação 1 (ID 1) para classificação do CIFAR-10 (3x32x32).
+    Única diferença em relação à Baseline (ID 0): Batch Normalization após cada
+    convolução, antes da ReLU.
     Estrutura:
-        TODO
-        Exemplo: Incluir Batch Normalization após as convoluções
+      - Bloco Conv 1: Conv2d(3 -> 32, k=3, p=1) + BatchNorm2d(32) + ReLU + MaxPool2d(2x2) -> Saída: 32x16x16
+      - Bloco Conv 2: Conv2d(32 -> 64, k=3, p=1) + BatchNorm2d(64) + ReLU + MaxPool2d(2x2) -> Saída: 64x8x8
+      - Classificador: Flatten(4096) -> Linear(4096 -> 128) + ReLU -> Linear(128 -> 10)
     """
     def __init__(self, num_classes: int = 10) -> None:
         super().__init__()
@@ -103,10 +106,12 @@ class Exp1BatchNormCNN(nn.Module):
 
 class Exp2BatchNormCNN(nn.Module):
     """
-    Arquitetura Baseline (ID 2) para classificação do CIFAR-10 (3x32x32).
+    Modificação 2 (ID 2) para classificação do CIFAR-10 (3x32x32).
+    Única diferença em relação ao ID 1: Dropout(p=0.4) no classificador, entre a
+    camada oculta e a camada de saída.
     Estrutura:
-        TODO 
-        Exemplo: Aumentar a profundidade (3º bloco conv com 128 filtros)
+      - Blocos Conv 1 e 2: idênticos aos do ID 1 (com Batch Normalization).
+      - Classificador: Flatten(4096) -> Linear(4096 -> 128) + ReLU + Dropout(0.4) -> Linear(128 -> 10)
     """
     def __init__(self, num_classes: int = 10) -> None:
         super().__init__()
@@ -181,10 +186,10 @@ def get_custom_model(exp_id: int, num_classes: int = 10) -> Tuple[nn.Module, str
         return BaselineCNN(num_classes=num_classes), "ID0_Baseline_CNN"
 
     elif exp_id == 1:
-        return Exp1BatchNormCNN(num_classes=num_classes), "ID1_Custom_Mod1_Stub"
+        return Exp1BatchNormCNN(num_classes=num_classes), "ID1_BatchNorm"
 
     elif exp_id == 2:
-        return Exp2BatchNormCNN(num_classes=num_classes), "ID2_Custom_Mod2_Stub"
+        return Exp2BatchNormCNN(num_classes=num_classes), "ID2_BN_Dropout"
 
     elif exp_id == 3:
         return Exp3BatchNormCNN(num_classes=num_classes), "ID3_Custom_Mod3_Stub"
