@@ -63,9 +63,19 @@ BASE_HYPERPARAMS: Dict[str, Any] = {
 
 # Caso algum experimento da Fase B exija ajuste pontual de hiperparâmetro
 # (ex: reduzir LR no fine-tuning completo do ID 5 ou 7), documente abaixo:
+#
+# ID 5 (fine-tuning completo da ResNet18): lr 1e-4 em vez do global 1e-3.
+# Com o backbone inteiro treinando, o lr global piorou o resultado; a explicação
+# usual é que passos grandes degradam os pesos pré-treinados. Medido em um piloto,
+# não no treino final (entrada em 96px, 4.000 imagens de treino e 2.000 de
+# validação tiradas dos splits de treino/validação, 3 épocas, 2 seeds; teste
+# intocado):
+#   - fine-tuning completo com lr 1e-3: 7 a 9 p.p. abaixo do backbone congelado;
+#   - fine-tuning completo com lr 1e-4: 7 a 9 p.p. acima do backbone congelado
+#     e cerca de 2 p.p. acima do fine-tuning parcial (layer4 + fc).
 EXP_OVERRIDES: Dict[int, Dict[str, Any]] = {
+    5: {"lr": 1e-4},
     # Exemplo para Fase B:
-    # 5: {"lr": 1e-4},
     # 7: {"lr": 1e-4},
 }
 # ==============================================================================

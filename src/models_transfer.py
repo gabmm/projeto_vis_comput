@@ -10,7 +10,7 @@ PAPEL NO PROJETO:
 
 MAPEAMENTO DE IDs DESTE MÓDULO:
     - ID 4: Rede 1 (ResNet18) - Estratégia 1 (Extração de características: backbone congelado, só a `fc` treina).
-    - ID 5: Rede 1 (ResNet18) - Estratégia 2 (Fase A: sem congelamento | Fase B: Fine-tuning).
+    - ID 5: Rede 1 (ResNet18) - Estratégia 2 (Fine-tuning completo: todas as camadas treinam, com lr reduzido no `run_project.py`).
     - ID 6: Rede 2 (MobileNetV2) - Estratégia 1 (Fase A: sem congelamento | Fase B: Backbone congelado).
     - ID 7: Rede 2 (MobileNetV2) - Estratégia 2 (Fase A: sem congelamento | Fase B: Fine-tuning).
 
@@ -92,8 +92,9 @@ def _build_mobilenet_v2(num_classes: int = 10) -> nn.Module:
 def get_transfer_model(exp_id: int, num_classes: int = 10) -> Tuple[nn.Module, str]:
     """
     Fábrica de modelos da Parte 2 (IDs 4 a 7).
-    O ID 4 já aplica a sua estratégia (backbone congelado). Os IDs 5 a 7 ainda
-    carregam as redes com pesos da ImageNet sem congelar camadas (Fase A).
+    Os IDs 4 e 5 já aplicam as suas estratégias (backbone congelado e fine-tuning
+    completo). Os IDs 6 e 7 ainda carregam a rede com pesos da ImageNet sem
+    congelar camadas (Fase A).
     """
     # --------------------------------------------------------------------------
     # REDE PRONTA 1: ResNet18 (IDs 4 e 5)
@@ -104,9 +105,13 @@ def get_transfer_model(exp_id: int, num_classes: int = 10) -> Tuple[nn.Module, s
         return model, "ID4_ResNet18_FeatExtract"
 
     elif exp_id == 5:
-        model = _build_resnet18(num_classes=num_classes)
-        # TODO Estratégia 2: Descongelar últimos blocos (ex: layer4) ou Fine-Tuning total
-        return model, "ID5_ResNet18_Transfer2_Stub"
+        # Estratégia 2: fine-tuning completo. Nenhuma camada é congelada, então os
+        # filtros da ImageNet se adaptam ao CIFAR-10 em todos os níveis e todos os
+        # BatchNorm atualizam pesos e estatísticas (nenhum fica em eval no treino).
+        # Treina com lr menor que o global: justificativa e números do piloto em
+        # EXP_OVERRIDES no `run_project.py`.
+        model = _build_resnet18(num_classes=num_classes, freeze_backbone=False)
+        return model, "ID5_ResNet18_FineTuning"
 
     # --------------------------------------------------------------------------
     # REDE PRONTA 2: MobileNetV2 (IDs 6 e 7)
