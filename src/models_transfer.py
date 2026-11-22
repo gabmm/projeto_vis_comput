@@ -9,8 +9,8 @@ PAPEL NO PROJETO:
     as estratégias de congelamento/descongelamento de camadas (requires_grad).
 
 MAPEAMENTO DE IDs DESTE MÓDULO:
-    - ID 4: Rede 1 (ResNet18) - Estratégia 1 (Fase A: sem congelamento | Fase B: Backbone congelado).
-    - ID 5: Rede 1 (ResNet18) - Estratégia 2 (Fase A: sem congelamento | Fase B: Fine-tuning).
+    - ID 4: Rede 1 (ResNet18) - Estratégia 1 (Extração de características: backbone congelado, só a `fc` treina).
+    - ID 5: Rede 1 (ResNet18) - Estratégia 2 (Fine-tuning completo: todas as camadas treinam, com lr reduzido no `run_project.py`).
     - ID 6: Rede 2 (MobileNetV2) - Estratégia 1 (Fase A: sem congelamento | Fase B: Backbone congelado).
     - ID 7: Rede 2 (MobileNetV2) - Estratégia 2 (Fase A: sem congelamento | Fase B: Fine-tuning).
 
@@ -20,7 +20,7 @@ INPUTS (Parâmetros da função fábrica `get_transfer_model`):
 
 OUTPUTS (Retorno da função fábrica):
     - model (torch.nn.Module): Modelo pré-treinado adaptado para 10 classes.
-    - exp_name (str): Nome descritivo do experimento (ex: 'ID4_ResNet18_Stub').
+    - exp_name (str): Nome descritivo do experimento (ex: 'ID4_ResNet18_FeatExtract').
 ================================================================================
 """
 
@@ -30,15 +30,52 @@ import torch.nn as nn
 from torchvision import models
 
 
-def _build_resnet18(num_classes: int = 10) -> nn.Module:
-    """Carrega a ResNet18 pré-treinada na ImageNet e adapta a saída para 10 classes."""
+# Lado, em pixels, para o qual a entrada 32x32 é ampliada (224 = resolução do pré-treino).
+INPUT_SIZE = 224
+
+
+class UpsampledPretrainedNet(nn.Module):
+    """
+    Adapta uma rede pré-treinada na ImageNet ao CIFAR-10 (3x32x32):
+      1. Amplia a entrada para INPUT_SIZE x INPUT_SIZE. A ResNet18 reduz a resolução
+         em 32x, então 32x32 chegaria ao último bloco como um mapa 1x1.
+      2. Mantém em eval() os BatchNorm congelados: `requires_grad=False` não congela
+         a média e a variância correntes, e o `engine.py` chama `model.train()`.
+    """
+    def __init__(self, net: nn.Module) -> None:
+        super().__init__()
+        self.upsample = nn.Upsample(size=INPUT_SIZE, mode="bilinear", align_corners=False)
+        self.net = net
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(self.upsample(x))
+
+    def train(self, mode: bool = True) -> "UpsampledPretrainedNet":
+        super().train(mode)
+        # Devolve ao modo eval só os BatchNorm congelados; o resto segue `mode`
+        for module in self.modules():
+            if isinstance(module, nn.BatchNorm2d) and not module.weight.requires_grad:
+                module.eval()
+        return self
+
+
+def _build_resnet18(num_classes: int = 10, freeze_backbone: bool = False) -> nn.Module:
+    """
+    Carrega a ResNet18 pré-treinada na ImageNet e adapta a saída para 10 classes.
+    Com `freeze_backbone=True` (Estratégia 1) só a nova camada `fc` fica treinável;
+    com False (Estratégia 2) todos os pesos seguem treináveis.
+    """
     weights = models.ResNet18_Weights.IMAGENET1K_V1
     model = models.resnet18(weights=weights)
+
+    if freeze_backbone:
+        # Congela antes de trocar a `fc`: a camada nova já nasce treinável
+        model.requires_grad_(False)
 
     # Substitui a camada final (original: 512 -> 1000) para (512 -> 10)
     in_features = model.fc.in_features
     model.fc = nn.Linear(in_features, num_classes)
-    return model
+    return UpsampledPretrainedNet(model)
 
 
 def _build_mobilenet_v2(num_classes: int = 10) -> nn.Module:
@@ -55,24 +92,23 @@ def _build_mobilenet_v2(num_classes: int = 10) -> nn.Module:
 def get_transfer_model(exp_id: int, num_classes: int = 10) -> Tuple[nn.Module, str]:
     """
     Fábrica de modelos da Parte 2 (IDs 4 a 7).
-    Na Fase A, carrega as duas redes prontas com pesos da ImageNet sem congelar camadas.
+    Os IDs 4 e 5 já aplicam as suas estratégias (backbone congelado e fine-tuning
+    completo). Os IDs 6 e 7 ainda carregam a rede com pesos da ImageNet sem
+    congelar camadas (Fase A).
     """
     # --------------------------------------------------------------------------
     # REDE PRONTA 1: ResNet18 (IDs 4 e 5)
     # --------------------------------------------------------------------------
     if exp_id == 4:
-        model = _build_resnet18(num_classes=num_classes)
-        # TODO Estratégia 1: Congelar o backbone convolucional e treinar só `model.fc`
-        # Exemplo para Fase B:
-        # for name, param in model.named_parameters():
-        #     if not name.startswith("fc"):
-        #         param.requires_grad = False
-        return model, "ID4_ResNet18_Transfer1_Stub"
+        # Estratégia 1: backbone congelado, só a camada `fc` (512 -> 10) treina
+        model = _build_resnet18(num_classes=num_classes, freeze_backbone=True)
+        return model, "ID4_ResNet18_FeatExtract"
 
     elif exp_id == 5:
-        model = _build_resnet18(num_classes=num_classes)
-        # TODO Estratégia 2: Descongelar últimos blocos (ex: layer4) ou Fine-Tuning total
-        return model, "ID5_ResNet18_Transfer2_Stub"
+        # Estratégia 2: fine-tuning completo, nenhuma camada congelada.
+        # Usa lr menor que o global (ver EXP_OVERRIDES no `run_project.py`).
+        model = _build_resnet18(num_classes=num_classes, freeze_backbone=False)
+        return model, "ID5_ResNet18_FineTuning"
 
     # --------------------------------------------------------------------------
     # REDE PRONTA 2: MobileNetV2 (IDs 6 e 7)

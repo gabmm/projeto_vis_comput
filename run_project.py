@@ -63,9 +63,12 @@ BASE_HYPERPARAMS: Dict[str, Any] = {
 
 # Caso algum experimento da Fase B exija ajuste pontual de hiperparâmetro
 # (ex: reduzir LR no fine-tuning completo do ID 5 ou 7), documente abaixo:
+#
+# ID 5: no fine-tuning completo o lr global (1e-3) degrada os pesos pré-treinados.
+# Em piloto (96px, 3 épocas), lr 1e-4 ficou 16 p.p. acima de 1e-3.
 EXP_OVERRIDES: Dict[int, Dict[str, Any]] = {
+    5: {"lr": 1e-4},
     # Exemplo para Fase B:
-    # 5: {"lr": 1e-4},
     # 7: {"lr": 1e-4},
 }
 # ==============================================================================
