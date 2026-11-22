@@ -146,35 +146,17 @@ class Exp2BatchNormCNN(nn.Module):
 class Exp3BatchNormCNN(nn.Module):
     """
     Arquitetura do ID 3 para classificação do CIFAR-10 (3x32x32):
-    ID 2 (BatchNorm + Dropout) + aumento de profundidade (3º bloco convolucional).
+    ID 2 (BatchNorm + Dropout) + 3º bloco convolucional com 128 filtros.
     Estrutura:
       - Bloco Conv 1: Conv2d(3 -> 32, k=3, p=1) + BatchNorm2d + ReLU + MaxPool2d(2x2) -> Saída: 32x16x16
       - Bloco Conv 2: Conv2d(32 -> 64, k=3, p=1) + BatchNorm2d + ReLU + MaxPool2d(2x2) -> Saída: 64x8x8
       - Bloco Conv 3: Conv2d(64 -> 128, k=3, p=1) + BatchNorm2d + ReLU + MaxPool2d(2x2) -> Saída: 128x4x4
       - Classificador: Flatten(2048) -> Linear(2048 -> 128) + ReLU + Dropout(p=0.4) -> Linear(128 -> 10)
 
-    Única diferença em relação ao ID 2: o Bloco Conv 3 (e, por consequência, a
-    entrada do primeiro Linear). Blocos 1 e 2, Dropout e saída são idênticos.
-
-    Justificativa:
-      - Hierarquia de features: um terceiro estágio conv + não linearidade permite
-        compor as features do bloco 2 em padrões mais abstratos antes do classificador.
-      - Campo receptivo: o campo receptivo teórico de cada posição do mapa final
-        passa de 10x10 pixels (ID 2) para 22x22 pixels, em uma imagem de 32x32. Cada
-        ativação entregue ao classificador resume uma região bem maior do objeto.
-      - O bloco novo repete o padrão dos anteriores (dobra os canais e reduz a
-        resolução pela metade), sem introduzir nenhum outro tipo de camada.
-
-    Efeito colateral (limitação do experimento):
-      - O MaxPool adicional reduz o mapa de 8x8 para 4x4. A entrada do primeiro
-        Linear cai de 64*8*8 = 4096 para 128*4*4 = 2048.
-      - Por isso o total de parâmetros DIMINUI apesar de a rede ficar mais profunda:
-        545.290 (ID 2) -> 357.258 (ID 3). O bloco novo acrescenta 74.112 parâmetros
-        (conv + BatchNorm), e o primeiro Linear perde 262.144.
-      - Profundidade e tamanho da entrada da camada densa mudam juntos. Uma eventual
-        diferença de desempenho entre ID 2 e ID 3 não pode ser atribuída apenas à
-        profundidade: a camada densa menor também altera a capacidade do
-        classificador, e este experimento não separa os dois efeitos.
+    O bloco novo aumenta o campo receptivo de 10x10 para 22x22 pixels. O MaxPool
+    extra reduz a entrada do primeiro Linear de 4096 para 2048, então o total de
+    parâmetros cai de 545.290 para 357.258: profundidade e tamanho da camada densa
+    mudam juntos.
     """
     def __init__(self, num_classes: int = 10) -> None:
         super().__init__()
