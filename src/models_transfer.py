@@ -105,11 +105,8 @@ def get_transfer_model(exp_id: int, num_classes: int = 10) -> Tuple[nn.Module, s
         return model, "ID4_ResNet18_FeatExtract"
 
     elif exp_id == 5:
-        # Estratégia 2: fine-tuning completo. Nenhuma camada é congelada, então os
-        # filtros da ImageNet se adaptam ao CIFAR-10 em todos os níveis e todos os
-        # BatchNorm atualizam pesos e estatísticas (nenhum fica em eval no treino).
-        # Treina com lr menor que o global: justificativa e números do piloto em
-        # EXP_OVERRIDES no `run_project.py`.
+        # Estratégia 2: fine-tuning completo, nenhuma camada congelada.
+        # Usa lr menor que o global (ver EXP_OVERRIDES no `run_project.py`).
         model = _build_resnet18(num_classes=num_classes, freeze_backbone=False)
         return model, "ID5_ResNet18_FineTuning"
 
