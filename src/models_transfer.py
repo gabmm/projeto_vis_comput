@@ -30,54 +30,17 @@ import torch.nn as nn
 from torchvision import models
 
 
-# Lado, em pixels, para o qual a entrada 32x32 é ampliada antes da rede pré-treinada.
-# 224 é a resolução do pré-treino na ImageNet. Sem GPU, 96 é a alternativa barata
-# (ver a sondagem na docstring de `UpsampledPretrainedNet`).
+# Lado, em pixels, para o qual a entrada 32x32 é ampliada (224 = resolução do pré-treino).
 INPUT_SIZE = 224
 
 
 class UpsampledPretrainedNet(nn.Module):
     """
-    Envolve uma rede pré-treinada na ImageNet para recebê-la no CIFAR-10 (3x32x32).
-    Usada pela Rede 1 (ResNet18, IDs 4 e 5). Não altera nenhum peso da rede
-    original; acrescenta apenas dois cuidados em volta dela:
-
-      1. Ampliação da entrada: Upsample bilinear de 32x32 para INPUT_SIZE x INPUT_SIZE
-         antes da rede. O `dataset.py` entrega 32x32 e é compartilhado por todos os
-         IDs, por isso a ampliação fica dentro do modelo.
-      2. BatchNorm congelado em modo eval: toda camada BatchNorm cujos pesos estão
-         congelados (requires_grad=False) permanece em eval() mesmo depois de
-         `model.train()`.
-
-    Justificativa:
-      - Resolução: a ResNet18 reduz a resolução espacial em 32x. Uma entrada de
-        32x32 chega ao último bloco como um mapa 1x1, e os filtros, aprendidos
-        com objetos em imagens de 224x224, nunca veem o objeto na escala em que
-        foram treinados.
-      - BatchNorm: `requires_grad=False` congela apenas gama e beta. A média e a
-        variância correntes são buffers, atualizados a cada forward em modo de
-        treino, e o `engine.py` chama `model.train()` a cada época. Sem este
-        cuidado o backbone "congelado" passaria a normalizar pelas estatísticas
-        do lote e teria as estatísticas da ImageNet sobrescritas.
-      - O critério é por camada (pesos do BatchNorm congelados), não pelo backbone
-        inteiro: no fine-tuning as camadas descongeladas seguem treinando
-        normalmente, e um Dropout na cabeça não é afetado.
-
-    Sondagem preliminar (regressão logística sobre as features da ResNet18
-    congelada; 4.000 imagens de treino e 1.000 de validação, ambas tiradas do
-    conjunto de treino; conjunto de teste intocado):
-      - Acurácia de validação por resolução de entrada: 53,6% em 32px, 67,0% em
-        64px, 76,3% em 96px, 79,1% em 128px e 82,2% em 224px.
-      - Deixando o BatchNorm se adaptar em 32px, a acurácia caiu de 53,6% para 36,5%.
-      - Custo do forward em CPU: 1.251 img/s em 32px, 140 em 96px e 32 em 224px.
-      - Normalização: mantida a do CIFAR-10 que o `dataset.py` já aplica. Trocar
-        pela da ImageNet não mudou o resultado em 96px (76,3% contra 76,4%).
-
-    Efeito colateral (limitação do experimento):
-      - A ampliação não cria informação: a imagem continua com o detalhe de 32x32.
-        O ganho vem de casar a escala dos objetos com a do pré-treino.
-      - O custo por imagem cresce com a área da entrada (cerca de 39x entre 32px
-        e 224px na medição acima), tanto no treino quanto na inferência.
+    Adapta uma rede pré-treinada na ImageNet ao CIFAR-10 (3x32x32):
+      1. Amplia a entrada para INPUT_SIZE x INPUT_SIZE. A ResNet18 reduz a resolução
+         em 32x, então 32x32 chegaria ao último bloco como um mapa 1x1.
+      2. Mantém em eval() os BatchNorm congelados: `requires_grad=False` não congela
+         a média e a variância correntes, e o `engine.py` chama `model.train()`.
     """
     def __init__(self, net: nn.Module) -> None:
         super().__init__()
