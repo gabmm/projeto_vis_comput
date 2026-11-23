@@ -69,7 +69,7 @@ BASE_HYPERPARAMS: Dict[str, Any] = {
 EXP_OVERRIDES: Dict[int, Dict[str, Any]] = {
     5: {"lr": 1e-4},
     # Exemplo para Fase B:
-    # 7: {"lr": 1e-4},
+    7: {"lr": 1e-4},
 }
 # ==============================================================================
 

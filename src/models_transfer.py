@@ -58,7 +58,6 @@ class UpsampledPretrainedNet(nn.Module):
                 module.eval()
         return self
 
-
 def _build_resnet18(num_classes: int = 10, freeze_backbone: bool = False) -> nn.Module:
     """
     Carrega a ResNet18 pré-treinada na ImageNet e adapta a saída para 10 classes.
@@ -78,15 +77,18 @@ def _build_resnet18(num_classes: int = 10, freeze_backbone: bool = False) -> nn.
     return UpsampledPretrainedNet(model)
 
 
-def _build_mobilenet_v2(num_classes: int = 10) -> nn.Module:
+def _build_mobilenet_v2(num_classes: int = 10, freeze_backbone: bool = False) -> nn.Module:
     """Carrega a MobileNetV2 pré-treinada na ImageNet e adapta a saída para 10 classes."""
     weights = models.MobileNet_V2_Weights.IMAGENET1K_V1
     model = models.mobilenet_v2(weights=weights)
 
+    for param in model.features.parameters():
+        param.requires_grad = not freeze_backbone
+
     # Substitui a camada final do classificador (original: 1280 -> 1000) para (1280 -> 10)
     in_features = model.classifier[1].in_features
     model.classifier[1] = nn.Linear(in_features, num_classes)
-    return model
+    return UpsampledPretrainedNet(model)
 
 
 def get_transfer_model(exp_id: int, num_classes: int = 10) -> Tuple[nn.Module, str]:
@@ -114,17 +116,14 @@ def get_transfer_model(exp_id: int, num_classes: int = 10) -> Tuple[nn.Module, s
     # REDE PRONTA 2: MobileNetV2 (IDs 6 e 7)
     # --------------------------------------------------------------------------
     elif exp_id == 6:
-        model = _build_mobilenet_v2(num_classes=num_classes)
-        # TODO Estratégia 1: Congelar `model.features` e treinar só `model.classifier`
-        # Exemplo para Fase B:
-        # for param in model.features.parameters():
-        #     param.requires_grad = False
-        return model, "ID6_MobileNetV2_Transfer1_Stub"
+        # Backbone congelado
+        model = _build_mobilenet_v2(num_classes=num_classes, freeze_backbone=True)
+        return model, "ID6_MobileNetV2_FreezeBackbone"
 
     elif exp_id == 7:
-        model = _build_mobilenet_v2(num_classes=num_classes)
-        # TODO Estratégia 2: Descongelar parcial ou Fine-Tuning completo
-        return model, "ID7_MobileNetV2_Transfer2_Stub"
+        # Nenhuma camada congelada (lr menor)
+        model = _build_mobilenet_v2(num_classes=num_classes, freeze_backbone=False)
+        return model, "ID7_MobileNetV2_FineTuning"
 
     else:
         raise ValueError(
