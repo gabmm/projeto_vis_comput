@@ -226,3 +226,22 @@ Abaixo está o rastreamento completo do que acontece internamente quando executa
   └─ 3. Exporta para results/figures/ as 3 Matrizes de Confusão em formato vetorial (.pdf)
         e a tabela comparativa final (Acurácia no Teste, Parâmetros, Tempos de Treino e Inferência).
 ```
+
+---
+
+## 6. Ambiente de Execução dos Experimentos
+
+Todos os experimentos oficiais (IDs `0` a `7`, 20 épocas cada) foram executados em uma única máquina, com a configuração abaixo.
+
+| Componente | Especificação |
+| :--- | :--- |
+| **GPU** | NVIDIA GeForce RTX 3070 (8 GB) |
+| **CPU** | Intel Core i5-9400F (6 núcleos) |
+| **RAM** | 16 GB (2 × 8 GB DDR4) |
+| **Sistema Operacional** | Windows 10 Pro |
+| **Python** | 3.14 |
+| **PyTorch / torchvision** | 2.14.1 / 0.29.1 (CUDA 12.6) |
+
+A semente aleatória foi fixada em `42` para todos os experimentos, incluindo a divisão estratificada entre treino ($45.000$ imagens) e validação ($5.000$ imagens).
+
+> **Nota sobre os tempos:** os tempos de treino e de inferência registrados nos logs dependem deste hardware e incluem o carregamento dos dados pelo `DataLoader`.
